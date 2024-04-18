@@ -24,7 +24,7 @@ make -j12
 
 UBUNTU 18.04
 
-apt install  git autoconf automake libtool ghostscript liblemon-dev libeigen3-dev libann-dev bmagic libcgicc-dev libgoogle-perftools-dev libglpk-dev coinor-* libjsoncpp-dev cmake libboost-dev swig python-dev libxml2-dev  libcairo2-dev libboost-all-dev libcurl4-openssl-dev
+apt install  git autoconf automake libtool ghostscript liblemon-dev libeigen3-dev libann-dev bmagic libcgicc-dev libgoogle-perftools-dev libglpk-dev coinor-* libjsoncpp-dev cmake libboost-dev swig python-dev libxml2-dev  libcairo2-dev libboost-all-dev libcurl4-openssl-dev liblemon-dev
 
 #NOTE: Currently the liblemon-dev package has an incorrect cmake config file that does
 #not set LEMON_LIBRARY to the correct location.  Either edit /usr/lib/cmake/LEMONConfig.cmake
@@ -55,12 +55,17 @@ cd ../..
 
 #smina
 git clone http://git.code.sf.net/p/smina/code smina
-cd smina/build/linux/release/
+cd smina
+mkdir build
+cd build
+cmake ..
 make -j8
 cp libsmina.a /usr/local/lib/
-cd ../../../..
+cd ../..
 
 #pharmit - ensure SMINA_DIR is the install location above
+cp /usr/local/lib/liblemon.a /usr/lib/
+cp /usr/local/lib/liblemon.a /usr/lib/x86_64-linux-gnu/
 git clone http://git.code.sf.net/p/pharmit/code pharmit
 cd pharmit/src
 mkdir build
@@ -68,7 +73,7 @@ cd build
 #/usr/lib/cmake/LEMONConfig.cmake is editted to point LEMON_LIBRARY to /usr/lib/x86_64-linux-gnu/
 cmake .. -DSMINALIB=/usr/local/lib/libsmina.a -DSMINA_DIR=$HOME/git/smina -DLEMON_DIR=/usr/lib/cmake/ 
 make -j12
-
+cp ./pharmit ~/anaconda3/envs/conphar-env/lib/python3.10/site-packages/conphar/bin/pharmitserver
 
 CENTOS (these instructions may be out of date)
 yum groupinstall 'Development Tools'

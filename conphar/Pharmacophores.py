@@ -50,6 +50,7 @@ def get_ligand_receptor_pharmacophore (receptor:str,ligand:str,out:str,out_forma
         b'{"pharmacophore": [{"type": "hydrophobic", "center": [1.2, 3.4, 5.6], "radius": 1.5}, ...]}'
     """
     args = (__PHARMIT,"-cmd", cmd, "-receptor", receptor, "-in", ligand, "-out", f'{out}.{out_format}')
+    print(args)
     popen = subprocess.Popen(args, stdout=subprocess.PIPE)
     popen.wait()
     output = popen.stdout.read()
@@ -322,9 +323,9 @@ def compute_concensus_pharmacophore (table:pd.DataFrame, save_data_per_descripto
             table['weight']=weight
 
             table['balance']=normalize([weight], norm="l1")[0]
-            
-            
-        return linkage,matrix,table
+            return linkage,matrix,table
+        else:
+            return None,None,None
         
     def __compute_center_of_mass_and_radius(table:pd.DataFrame):
 
@@ -363,47 +364,50 @@ def compute_concensus_pharmacophore (table:pd.DataFrame, save_data_per_descripto
     index=1
     for group in Descriptors.groups:
         linkage,matrix,descriptor_cluster=__compute_cluster(Descriptors.get_group(group))
-        Links[group]={'matrix':matrix,'linkage':linkage,'table':descriptor_cluster}
-        
-        if save_data_per_descriptor==True:
-            
-            
-            
-            lut = dict(zip(descriptor_cluster.cluster.unique(), sns.color_palette('Set3',len(descriptor_cluster.cluster.unique()))))
-            row_colors = descriptor_cluster.cluster.map(lut).to_numpy()
-            
-            
-            
-
-            ax=sns.clustermap (matrix,method='complete',figsize=(6,6),xticklabels=0, yticklabels=0,
-                               cmap='binary_r',cbar_kws=dict(label='Distance',shrink=1,orientation='vertical',spacing='uniform',pad=0.02),
-                               row_linkage=linkage, col_linkage=linkage, rasterized=True,row_colors=row_colors,tree_kws=dict(linewidths=1))
-            
-            x0, _y0, _w, _h = ax.cbar_pos
-            ax.ax_cbar.set_position([0.1, 0.8, _w/1, _h/1.2])
-            ax.ax_cbar.set_ylabel('Distance Å',fontsize=10,fontweight='bold')
-            ax.ax_cbar.tick_params(axis='y', length=3,width=1,labelsize=10)
-            
-            ax.savefig(f"{out_folder}/{group}_clusters.svg",dpi=300,bbox_inches="tight")
-            
-            __save_pymol_cluster(table=descriptor_cluster,out_file=f"{out_folder}/{group}_clusters.pse",cluster_color_map=lut)
-            
-        else:
+        if linkage is None:
             pass
-        
-        clusters=descriptor_cluster.groupby('cluster')
-        for cg in clusters.groups:
-            clus=clusters.get_group(cg)
-            center_of_mass,radius=__compute_center_of_mass_and_radius(clus)
-            Concensus.loc[index,'name']=group
-            Concensus.loc[index,'cluster']=cg
-            Concensus.loc[index,'x']=center_of_mass[0]
-            Concensus.loc[index,'y']=center_of_mass[1]
-            Concensus.loc[index,'z']=center_of_mass[2]
-            Concensus.loc[index,'radius']=radius
-            Concensus.loc[index,'color']=clus.loc[clus.index[0],'color']
-            Concensus.loc[index,'weight']=int(len(clus.index))
-            Concensus.loc[index,'balance']=clus['balance'].sum()
-            index=index+1
+        else:
+            Links[group]={'matrix':matrix,'linkage':linkage,'table':descriptor_cluster}
+            
+            if save_data_per_descriptor==True:
+                
+                
+                
+                lut = dict(zip(descriptor_cluster.cluster.unique(), sns.color_palette('Set3',len(descriptor_cluster.cluster.unique()))))
+                row_colors = descriptor_cluster.cluster.map(lut).to_numpy()
+                
+                
+                
+
+                ax=sns.clustermap (matrix,method='complete',figsize=(6,6),xticklabels=0, yticklabels=0,
+                                cmap='binary_r',cbar_kws=dict(label='Distance',shrink=1,orientation='vertical',spacing='uniform',pad=0.02),
+                                row_linkage=linkage, col_linkage=linkage, rasterized=True,row_colors=row_colors,tree_kws=dict(linewidths=1))
+                
+                x0, _y0, _w, _h = ax.cbar_pos
+                ax.ax_cbar.set_position([0.1, 0.8, _w/1, _h/1.2])
+                ax.ax_cbar.set_ylabel('Distance Å',fontsize=10,fontweight='bold')
+                ax.ax_cbar.tick_params(axis='y', length=3,width=1,labelsize=10)
+                
+                ax.savefig(f"{out_folder}/{group}_clusters.svg",dpi=300,bbox_inches="tight")
+                
+                __save_pymol_cluster(table=descriptor_cluster,out_file=f"{out_folder}/{group}_clusters.pse",cluster_color_map=lut)
+                
+            else:
+                pass
+            
+            clusters=descriptor_cluster.groupby('cluster')
+            for cg in clusters.groups:
+                clus=clusters.get_group(cg)
+                center_of_mass,radius=__compute_center_of_mass_and_radius(clus)
+                Concensus.loc[index,'name']=group
+                Concensus.loc[index,'cluster']=cg
+                Concensus.loc[index,'x']=center_of_mass[0]
+                Concensus.loc[index,'y']=center_of_mass[1]
+                Concensus.loc[index,'z']=center_of_mass[2]
+                Concensus.loc[index,'radius']=radius
+                Concensus.loc[index,'color']=clus.loc[clus.index[0],'color']
+                Concensus.loc[index,'weight']=int(len(clus.index))
+                Concensus.loc[index,'balance']=clus['balance'].sum()
+                index=index+1
     
     return Concensus, Links
